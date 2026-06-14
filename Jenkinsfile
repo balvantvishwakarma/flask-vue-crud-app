@@ -55,7 +55,7 @@ pipeline {
                                     --document-name "AWS-RunShellScript" \
                                     --instance-ids "${INSTANCE_ID}" \
                                     --parameters 'commands=["bash /home/ssm-user/flask-vue-crud/deploy.sh"]' \
-                                    --timeout-seconds 300 \
+                                    --timeout-seconds 100 \
                                     --region ${AWS_REGION} \
                                     --query Command.CommandId \
                                     --output text
