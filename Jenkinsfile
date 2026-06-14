@@ -3,33 +3,44 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1' 
-        INSTANCE_ID = 'i-039aabe98ae5694a7'
+        INSTANCE_ID = 'i-039aabe98ae5694a7' // Aapka confirm AWS Instance ID
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Pulling source code from GitHub...'
+                echo 'Pulling latest source code from GitHub...'
                 checkout scm
             }
         }
 
-        stage('Build & Lint Validation') {
+        stage('Build & Asset Verification') {
             steps {
-                echo 'Validating repository structure natively...'
+                echo 'Validating Frontend & Backend configurations...'
                 script {
-                    def serverReqExists = fileExists 'server/requirements.txt'
-                    def clientPkgExists = fileExists 'client/package.json'
-                    if (!serverReqExists || !clientPkgExists) {
-                        error("CRITICAL ERROR: Missing deployment blueprint files inside repository structure!")
+                    if (!fileExists('server/requirements.txt') || !fileExists('client/package.json')) {
+                        error("CRITICAL: Structural configuration files are missing!")
                     }
                 }
             }
         }
 
-        stage('Deploy via AWS SSM API') {
+        stage('Lint (Code Quality)') {
             steps {
-                echo 'Executing Real HTTP API Handshake with AWS Systems Manager via Curl...'
+                echo 'Running Python Linting checks via flake8...'
+                // Jenkins container ke andar ab python3 aur pip natively chalega
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install flake8
+                    cd server && flake8 .
+                '''
+            }
+        }
+
+        stage('Deploy via AWS SSM (No SSH)') {
+            steps {
+                echo 'Dispatching secure deployment command via AWS CLI...'
                 
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding', 
@@ -37,24 +48,13 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                    // Hum bina kisi CLI ke direct AWS API Endpoint ko hit kar rahe hain curl se
+                    // Ab Jenkins ke andar 'aws' CLI natively available hai!
                     sh """
-                        echo "Sending actual payload to AWS SSM endpoint..."
-                        
-                        curl -s -X POST "https://ssm.${AWS_REGION}.amazonaws.com/" \
-                          -H "X-Amz-Target: AmazonSSMScriptRunner.SendCommand" \
-                          -H "Content-Type: application/x-amz-json-1.1" \
-                          --aws-sigv4 "aws:amz:${AWS_REGION}:ssm" \
-                          --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
-                          -d '{
-                            "InstanceIds": ["${INSTANCE_ID}"],
-                            "DocumentName": "AWS-RunShellScript",
-                            "Parameters": {
-                              "commands": ["cd /home/ec2-user/flask-vue-crud && bash deploy.sh"]
-                            }
-                          }'
-                          
-                        echo "SSM Command successfully dispatched via API Tunnel!"
+                        aws ssm send-command \
+                            --document-name "AWS-RunShellScript" \
+                            --instance-ids "${INSTANCE_ID}" \
+                            --parameters 'commands=["bash /home/ec2-user/flask-vue-crud/deploy.sh"]' \
+                            --region ${AWS_REGION}
                     """
                 }
             }
