@@ -1,3 +1,9 @@
+
+
+https://github.com/user-attachments/assets/766d0ac5-d85e-4332-84f2-797efe0df264
+
+
+
 # 🏗️ Enterprise-Grade Production CI/CD Pipeline for Multi-Service Architecture
 
 This project demonstrates a production-ready, highly secure **Continuous Integration and Continuous Deployment (CI/CD)** ecosystem engineered on the principles of **Zero-Trust Network Security** and **Immutable Infrastructure-as-Code (IaC)**. 
