@@ -1,8 +1,6 @@
 
 
-https://github.com/user-attachments/assets/26dfb3f2-470d-4134-b101-b9ba595f3b0d
-
-
+https://github.com/user-attachments/assets/39b79e4f-2624-4717-9f48-46fbdf2799fa
 
 # 🏗️ Enterprise-Grade Production CI/CD Pipeline for Multi-Service Architecture
 
