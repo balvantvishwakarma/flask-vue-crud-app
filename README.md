@@ -31,6 +31,7 @@ Bash
 sudo dnf update -y
 sudo dnf install docker -y
 sudo systemctl enable --now docker
+
 📦 Phase 4: Containerization and Multi-Service Orchestration Design
 The decoupled components were isolated into microservices to enforce microservices clean-start principles:
 
