@@ -1,5 +1,3 @@
-
-
 https://github.com/user-attachments/assets/39b79e4f-2624-4717-9f48-46fbdf2799fa
 
 # 🏗️ Enterprise-Grade Production CI/CD Pipeline for Multi-Service Architecture
@@ -7,6 +5,7 @@ https://github.com/user-attachments/assets/39b79e4f-2624-4717-9f48-46fbdf2799fa
 This project demonstrates a production-ready, highly secure **Continuous Integration and Continuous Deployment (CI/CD)** ecosystem engineered on the principles of **Zero-Trust Network Security** and **Immutable Infrastructure-as-Code (IaC)**. 
 
 The primary architectural paradigm rules that the production server must completely eliminate external administrative vector entry; therefore, **Inbound Port 22 (SSH) is strictly prohibited and removed from the AWS Security Group.** All deployment orchestration, continuous code analysis, and infrastructure sync states are securely tunneled using the cloud-native **AWS Systems Manager (SSM) API Core**.
+<img width="752" height="769" alt="basesolve drawio" src="https://github.com/user-attachments/assets/2d6a7fd3-dc30-4c6b-a0dc-7aa3499b01e2" />
 
 ---
 
