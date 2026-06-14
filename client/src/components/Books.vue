@@ -15,8 +15,8 @@
         <table class="table table-hover">
           <thead>
             <tr>
-              <th scope="col">Title</th>
-              <th scope="col">Authors</th>
+              <th scope="col">Basesolve</th>
+              <th scope="col">Lytiva</th>
               <th scope="col">Read?</th>
               <th></th>
             </tr>
