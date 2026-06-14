@@ -16,7 +16,7 @@
           <thead>
             <tr>
               <th scope="col">Title</th>
-              <th scope="col">Author</th>
+              <th scope="col">Authorsss</th>
               <th scope="col">Read?</th>
               <th></th>
             </tr>
