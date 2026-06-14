@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // AWS credentials mapped to standard environment variables
         AWS_CRED = credentials('aws-credentials-id') 
-        AWS_REGION = 'us-east-1'
+        AWS_REGION = 'us-east-1' 
         INSTANCE_ID = 'i-039aabe98ae5694a7' 
     }
 
@@ -17,7 +16,9 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'cd client && npm install'
+                echo 'Validating Frontend Build using Docker Node Image...'
+                // Local npm ki jagah hum temporary node container me npm install check kar rahe hain
+                sh 'docker run --rm -v $(pwd)/client:/app -w /app node:20-slim npm install'
             }
         }
 
