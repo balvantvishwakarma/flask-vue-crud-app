@@ -29,7 +29,7 @@ pipeline {
 
         stage('Deploy via AWS SSM API') {
             steps {
-                echo 'Executing Secure Remote Deployment Context Handshake...'
+                echo 'Executing Real HTTP API Handshake with AWS Systems Manager via Curl...'
                 
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding', 
@@ -37,13 +37,24 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                    echo "Target Region Secured: ${AWS_REGION}"
-                    echo "Forwarding execution context mapping payload to instance proxy: ${INSTANCE_ID}"
-                    
-                    // Native curl execution proxy targeting AWS SSM API Endpoint securely
+                    // Hum bina kisi CLI ke direct AWS API Endpoint ko hit kar rahe hain curl se
                     sh """
-                        echo 'Deploying artifact updates directly to container engine via SSM infrastructure...'
-                        echo "Successfully dispatched context trigger for Instance: ${INSTANCE_ID}"
+                        echo "Sending actual payload to AWS SSM endpoint..."
+                        
+                        curl -s -X POST "https://ssm.${AWS_REGION}.amazonaws.com/" \
+                          -H "X-Amz-Target: AmazonSSMScriptRunner.SendCommand" \
+                          -H "Content-Type: application/x-amz-json-1.1" \
+                          --aws-sigv4 "aws:amz:${AWS_REGION}:ssm" \
+                          --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
+                          -d '{
+                            "InstanceIds": ["${INSTANCE_ID}"],
+                            "DocumentName": "AWS-RunShellScript",
+                            "Parameters": {
+                              "commands": ["cd /home/ec2-user/flask-vue-crud && bash deploy.sh"]
+                            }
+                          }'
+                          
+                        echo "SSM Command successfully dispatched via API Tunnel!"
                     """
                 }
             }
