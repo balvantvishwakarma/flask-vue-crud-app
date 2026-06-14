@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-1' // Confirm kar lena aapka EC2 isi region me hai
-        INSTANCE_ID = 'i-039aabe98ae5694a7' // <-- YAHA APNE ASLI EC2 KI INSTANCE ID DAALNA MAT BHOOLNA
+        AWS_REGION = 'us-east-1' 
+        INSTANCE_ID = 'i-039aabe98ae5694a7' // Aapka sahi Instance ID automatic lag gaya hai
     }
 
     stages {
@@ -28,17 +28,22 @@ pipeline {
 
         stage('Deploy via AWS SSM (SSH Strictly Prohibited)') {
             steps {
-                echo 'Executing Secure Remote Deployment via AWS SSM...'
+                echo 'Executing Secure Remote Deployment via AWS CLI Docker Container...'
                 
-                // CloudBees AWS Credentials Plugin ka sahi format
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding', 
                     credentialsId: 'aws-credentials-id', 
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
+                    // Local AWS CLI ki jagah official amazon/aws-cli container use kar rahe hain
                     sh """
-                        aws ssm send-command \
+                        docker run --rm \
+                            -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+                            -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+                            -e AWS_DEFAULT_REGION=${AWS_REGION} \
+                            amazon/aws-cli \
+                            ssm send-command \
                             --document-name "AWS-RunShellScript" \
                             --instance-ids "${INSTANCE_ID}" \
                             --parameters 'commands=["bash /home/ec2-user/flask-vue-crud/deploy.sh"]' \
