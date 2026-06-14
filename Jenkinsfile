@@ -48,7 +48,7 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     script {
-                        // Step 1: Send SSM command and capture Command ID
+                        // Step 1:
                         def commandId = sh(
                             script: """
                                 aws ssm send-command \
@@ -65,7 +65,7 @@ pipeline {
 
                         echo "SSM Command ID: ${commandId}"
 
-                        // Step 2: Wait for command to complete
+                        // Step 2: 
                         echo 'Waiting for SSM command to complete...'
                         sh """
                             aws ssm wait command-executed \
@@ -74,7 +74,7 @@ pipeline {
                                 --region ${AWS_REGION}
                         """
 
-                        // Step 3: Get command output using text format (NO readJSON needed)
+                        // Step 3: 
                         def ssmOutput = sh(
                             script: """
                                 aws ssm get-command-invocation \
@@ -111,20 +111,18 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                        // Step 4: Print logs for debugging
+                        // Step 4: 
                         echo "========== SSM Command Status: ${ssmStatus} =========="
                         echo "========== SSM STDOUT =========="
                         echo ssmOutput
                         echo "========== SSM STDERR =========="
                         echo ssmError
 
-                        // Step 5: Check if command actually succeeded
-                        // Status can be: Success, Failed, TimedOut, Cancelled
+                        // Step 5: 
                         if (ssmStatus != "Success") {
                             error("SSM Deployment FAILED with status: ${ssmStatus}. Check SSM logs above for details.")
                         }
 
-                        // Also check if stderr has any critical errors
                         if (ssmError?.trim()) {
                             echo "WARNING: SSM command completed but stderr has content. Review logs above."
                         }
