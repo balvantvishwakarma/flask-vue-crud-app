@@ -221,7 +221,7 @@ export default {
   },
   methods: {
     addBook(payload) {
-      const path = 'http://localhost:5001/books';
+      const path = 'http://98.93.27.244:5001/books';
       axios.post(path, payload)
         .then(() => {
           this.getBooks();
