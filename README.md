@@ -6,7 +6,7 @@ This project demonstrates a production-ready, highly secure **Continuous Integra
 
 The primary architectural paradigm rules that the production server must completely eliminate external administrative vector entry; therefore, **Inbound Port 22 (SSH) is strictly prohibited and removed from the AWS Security Group.** All deployment orchestration, continuous code analysis, and infrastructure sync states are securely tunneled using the cloud-native **AWS Systems Manager (SSM) API Core**.
 
-<img width="810" height="525" alt="basesolve drawio" src="https://github.com/user-attachments/assets/2d6a7fd3-dc30-4c6b-a0dc-7aa3499b01e2" />
+<img width="900" height="525" alt="basesolve drawio" src="https://github.com/user-attachments/assets/2d6a7fd3-dc30-4c6b-a0dc-7aa3499b01e2" />
 
 ---
 
