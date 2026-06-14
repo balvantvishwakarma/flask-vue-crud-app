@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1' 
-        INSTANCE_ID = 'i-039aabe98ae5694a7' // Aapka sahi Instance ID automatic lag gaya hai
+        INSTANCE_ID = 'i-039aabe98ae5694a7'
     }
 
     stages {
@@ -26,29 +26,20 @@ pipeline {
             }
         }
 
-        stage('Deploy via AWS SSM (SSH Strictly Prohibited)') {
+        stage('Deploy via AWS SSM') {
             steps {
-                echo 'Executing Secure Remote Deployment via AWS CLI Docker Container...'
+                echo 'Executing Remote Deployment via Native Jenkins AWS API Step...'
                 
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding', 
-                    credentialsId: 'aws-credentials-id', 
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    // Local AWS CLI ki jagah official amazon/aws-cli container use kar rahe hain
-                    sh """
-                        docker run --rm \
-                            -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-                            -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-                            -e AWS_DEFAULT_REGION=${AWS_REGION} \
-                            amazon/aws-cli \
-                            ssm send-command \
-                            --document-name "AWS-RunShellScript" \
-                            --instance-ids "${INSTANCE_ID}" \
-                            --parameters 'commands=["bash /home/ec2-user/flask-vue-crud/deploy.sh"]' \
-                            --region ${AWS_REGION}
-                    """
+                // Hum direct plugin framework inject kar rahe hain, isme backend se HTTP API call jayegi
+                withAWS(credentials: 'aws-credentials-id', region: "${AWS_REGION}") {
+                    // Kisi CLI ya Docker command ki zaroorat nahi padegi
+                    awsSSMSendCommand(
+                        instanceIds: ["${INSTANCE_ID}"],
+                        documentName: 'AWS-RunShellScript',
+                        parameters: [
+                            commands: ["bash /home/ec2-user/flask-vue-crud/deploy.sh"]
+                        ]
+                    )
                 }
             }
         }
