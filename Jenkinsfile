@@ -2,9 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_CRED = credentials('aws-credentials-id') 
-        AWS_REGION = 'us-east-1' 
-        INSTANCE_ID = 'i-039aabe98ae5694a7'
+        AWS_REGION = 'us-east-1' // Confirm kar lena aapka EC2 isi region me hai
+        INSTANCE_ID = 'i-039aabe98ae5694a7' // <-- YAHA APNE ASLI EC2 KI INSTANCE ID DAALNA MAT BHOOLNA
     }
 
     stages {
@@ -29,12 +28,15 @@ pipeline {
 
         stage('Deploy via AWS SSM (SSH Strictly Prohibited)') {
             steps {
-                echo 'Executing Secure Remote Deployment and Quality Checks via AWS SSM...'
-                withEnv([
-                    "AWS_ACCESS_KEY_ID=${AWS_CRED_USR}", 
-                    "AWS_SECRET_ACCESS_KEY=${AWS_CRED_PSW}",
-                    "AWS_DEFAULT_REGION=${AWS_REGION}"
-                ]) {
+                echo 'Executing Secure Remote Deployment via AWS SSM...'
+                
+                // CloudBees AWS Credentials Plugin ka sahi format
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding', 
+                    credentialsId: 'aws-credentials-id', 
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
                     sh """
                         aws ssm send-command \
                             --document-name "AWS-RunShellScript" \
