@@ -1,9 +1,11 @@
 pipeline {
     agent any
+
     environment {
-        AWS_REGION    = 'us-east-1'
-        INSTANCE_ID   = 'i-039aabe98ae5694a7'
+        AWS_REGION = 'us-east-1'
+        INSTANCE_ID = 'i-039aabe98ae5694a7'
     }
+
     stages {
         stage('Checkout') {
             steps {
@@ -25,7 +27,7 @@ pipeline {
 
         stage('Lint (Code Quality)') {
             steps {
-                echo 'Running Python Linting via flake8...'
+                echo 'Running Python Linting checks via flake8...'
                 sh '''
                     python3 -m venv venv
                     . venv/bin/activate
@@ -35,9 +37,10 @@ pipeline {
             }
         }
 
-        stage('Deploy via AWS SSM') {
+        stage('Deploy via AWS SSM (No SSH)') {
             steps {
-                echo 'Dispatching deployment and waiting for result...'
+                echo 'Dispatching secure deployment command via AWS CLI...'
+
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'aws-credentials-id',
@@ -45,8 +48,8 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     script {
-                        // 1. Command bhejo, Command ID lo
-                        def cmdId = sh(
+                        // Step 1: Send SSM command and capture Command ID
+                        def commandId = sh(
                             script: """
                                 aws ssm send-command \
                                     --document-name "AWS-RunShellScript" \
@@ -54,49 +57,79 @@ pipeline {
                                     --parameters 'commands=["bash /home/ec2-user/flask-vue-crud/deploy.sh"]' \
                                     --timeout-seconds 300 \
                                     --region ${AWS_REGION} \
-                                    --query 'Command.CommandId' \
+                                    --query Command.CommandId \
                                     --output text
                             """,
                             returnStdout: true
                         ).trim()
 
-                        echo "SSM Command ID: ${cmdId}"
+                        echo "SSM Command ID: ${commandId}"
 
-                        // 2. Jab tak complete na ho, wait karo (max 5 min)
+                        // Step 2: Wait for command to complete
+                        echo 'Waiting for SSM command to complete...'
                         sh """
                             aws ssm wait command-executed \
-                                --command-id "${cmdId}" \
-                                --instance-id "${INSTANCE_ID}" \
+                                --command-id ${commandId} \
+                                --instance-id ${INSTANCE_ID} \
                                 --region ${AWS_REGION}
                         """
 
-                        // 3. Exit code aur output check karo
-                        def result = sh(
+                        // Step 3: Get command output using text format (NO readJSON needed)
+                        def ssmOutput = sh(
                             script: """
                                 aws ssm get-command-invocation \
-                                    --command-id "${cmdId}" \
-                                    --instance-id "${INSTANCE_ID}" \
+                                    --command-id ${commandId} \
+                                    --instance-id ${INSTANCE_ID} \
                                     --region ${AWS_REGION} \
-                                    --output json
+                                    --output text \
+                                    --query 'StandardOutputContent'
                             """,
                             returnStdout: true
                         ).trim()
 
-                        def json       = readJSON text: result
-                        def exitCode   = json.ResponseCode
-                        def stdout     = json.StandardOutputContent
-                        def stderr     = json.StandardErrorContent
+                        def ssmError = sh(
+                            script: """
+                                aws ssm get-command-invocation \
+                                    --command-id ${commandId} \
+                                    --instance-id ${INSTANCE_ID} \
+                                    --region ${AWS_REGION} \
+                                    --output text \
+                                    --query 'StandardErrorContent'
+                            """,
+                            returnStdout: true
+                        ).trim()
 
-                        echo "=== Deploy Script Output ==="
-                        echo stdout
+                        def ssmStatus = sh(
+                            script: """
+                                aws ssm get-command-invocation \
+                                    --command-id ${commandId} \
+                                    --instance-id ${INSTANCE_ID} \
+                                    --region ${AWS_REGION} \
+                                    --output text \
+                                    --query 'Status'
+                            """,
+                            returnStdout: true
+                        ).trim()
 
-                        if (exitCode != 0) {
-                            echo "=== STDERR ==="
-                            echo stderr
-                            error("Deploy FAILED! deploy.sh exit code: ${exitCode}")
+                        // Step 4: Print logs for debugging
+                        echo "========== SSM Command Status: ${ssmStatus} =========="
+                        echo "========== SSM STDOUT =========="
+                        echo ssmOutput
+                        echo "========== SSM STDERR =========="
+                        echo ssmError
+
+                        // Step 5: Check if command actually succeeded
+                        // Status can be: Success, Failed, TimedOut, Cancelled
+                        if (ssmStatus != "Success") {
+                            error("SSM Deployment FAILED with status: ${ssmStatus}. Check SSM logs above for details.")
                         }
 
-                        echo "Deployment successful (exit code: 0)"
+                        // Also check if stderr has any critical errors
+                        if (ssmError?.trim()) {
+                            echo "WARNING: SSM command completed but stderr has content. Review logs above."
+                        }
+
+                        echo 'Deployment completed successfully!'
                     }
                 }
             }
@@ -104,11 +137,15 @@ pipeline {
     }
 
     post {
-        failure {
-            echo "Pipeline FAILED — check SSM output above for details."
-        }
         success {
-            echo "All stages passed. App is live!"
+            echo 'Pipeline SUCCESS: Deployment completed!'
+        }
+        failure {
+            echo 'Pipeline FAILED: Check SSM logs above for deployment errors.'
+        }
+        always {
+            echo 'Pipeline finished. Cleaning up workspace...'
+            cleanWs()
         }
     }
 }
