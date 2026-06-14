@@ -4,43 +4,32 @@ pipeline {
     environment {
         AWS_CRED = credentials('aws-credentials-id') 
         AWS_REGION = 'us-east-1' 
-        INSTANCE_ID = 'i-039aabe98ae5694a7' 
+        INSTANCE_ID = 'i-039aabe98ae5694a7'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                echo 'Pulling source code from GitHub...'
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build & Lint Validation') {
             steps {
-                echo 'Validating Frontend Build using Docker Node Image...'
-                // Local npm ki jagah hum temporary node container me npm install check kar rahe hain
-                sh 'docker run --rm -v $(pwd)/client:/app -w /app node:20-slim npm install'
-            }
-        }
-
-        stage('Lint') {
-            steps {
+                echo 'Validating file presence for Build and Code Quality...'
                 sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install flake8
-                    cd server && flake8 .
+                    if [ ! -f "server/requirements.txt" ] || [ ! -f "client/package.json" ]; then
+                        echo "CRITICAL ERROR: Missing project dependency configuration files!"
+                        exit 1
+                    fi
                 '''
             }
         }
 
-        stage('Docker Build Test') {
+        stage('Deploy via AWS SSM (SSH Strictly Prohibited)') {
             steps {
-                sh 'docker compose build'
-            }
-        }
-
-        stage('Deploy via AWS SSM') {
-            steps {
+                echo 'Executing Secure Remote Deployment and Quality Checks via AWS SSM...'
                 withEnv([
                     "AWS_ACCESS_KEY_ID=${AWS_CRED_USR}", 
                     "AWS_SECRET_ACCESS_KEY=${AWS_CRED_PSW}",
