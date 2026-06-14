@@ -54,7 +54,7 @@ pipeline {
                                 aws ssm send-command \
                                     --document-name "AWS-RunShellScript" \
                                     --instance-ids "${INSTANCE_ID}" \
-                                    --parameters 'commands=["bash /home/ec2-user/flask-vue-crud/deploy.sh"]' \
+                                    --parameters 'commands=["bash /home/ssm-user/flask-vue-crud/deploy.sh"]' \
                                     --timeout-seconds 300 \
                                     --region ${AWS_REGION} \
                                     --query Command.CommandId \
